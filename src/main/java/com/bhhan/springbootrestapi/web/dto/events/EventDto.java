@@ -1,8 +1,7 @@
 package com.bhhan.springbootrestapi.web.dto.events;
 
 import com.bhhan.springbootrestapi.domain.events.Event;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotEmpty;
@@ -15,9 +14,11 @@ import java.time.LocalDateTime;
  */
 
 
-@Builder
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
 public class EventDto {
+
     @NotEmpty
     private String name;
     @NotEmpty
@@ -38,6 +39,36 @@ public class EventDto {
     private int maxPrice;
     @Min(0)
     private int limitOfEnrollment;
+
+    @Builder
+    public EventDto(String name, String description, LocalDateTime beginEnrollmentDateTime,
+                    LocalDateTime closeEnrollmentDateTime, LocalDateTime beginEventDateTime,
+                    LocalDateTime endEventDateTime, String location, int basePrice,
+                    int maxPrice, int limitOfEnrollment){
+        this.name = name;
+        this.description = description;
+        this.beginEnrollmentDateTime = beginEnrollmentDateTime;
+        this.closeEnrollmentDateTime = closeEnrollmentDateTime;
+        this.beginEventDateTime = beginEventDateTime;
+        this.endEventDateTime = endEventDateTime;
+        this.location = location;
+        this.basePrice = basePrice;
+        this.maxPrice = maxPrice;
+        this.limitOfEnrollment = limitOfEnrollment;
+    }
+
+    public EventDto(Event event){
+        this.name =  event.getName();
+        this.description = event.getDescription();
+        this.beginEnrollmentDateTime = event.getBeginEnrollmentDateTime();
+        this.closeEnrollmentDateTime = event.getCloseEnrollmentDateTime();
+        this.beginEventDateTime = event.getBeginEventDateTime();
+        this.endEventDateTime = event.getEndEventDateTime();
+        this.location = event.getLocation();
+        this.basePrice = event.getBasePrice();
+        this.maxPrice = event.getMaxPrice();
+        this.limitOfEnrollment = event.getLimitOfEnrollment();
+    }
 
     public Event toEntity(){
         final Event event = Event.builder()

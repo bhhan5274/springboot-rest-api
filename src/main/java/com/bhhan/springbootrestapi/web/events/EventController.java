@@ -7,18 +7,22 @@ import com.bhhan.springbootrestapi.domain.events.EventResource;
 import com.bhhan.springbootrestapi.domain.events.EventValidator;
 import com.bhhan.springbootrestapi.web.dto.events.EventDto;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
+import org.springframework.hateoas.PagedResources;
+import org.springframework.hateoas.Resource;
 import org.springframework.hateoas.mvc.ControllerLinkBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.Errors;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.net.URI;
+import java.util.Optional;
 
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
 
@@ -34,18 +38,19 @@ public class EventController {
 
     private final EventRepository eventRepository;
     private final EventValidator eventValidator;
+    private final ModelMapper modelMapper;
 
     @PostMapping
     public ResponseEntity createEvent(@RequestBody @Valid EventDto eventDto, Errors errors){
 
         if(errors.hasErrors()){
-            return badResponse(errors);
+            return badRequest(errors);
         }
 
         eventValidator.validate(eventDto, errors);
 
         if(errors.hasErrors()){
-            return badResponse(errors);
+            return badRequest(errors);
         }
 
         final Event savedEvent = eventRepository.save(eventDto.toEntity());
@@ -55,14 +60,65 @@ public class EventController {
 
         final EventResource eventResource = new EventResource(savedEvent)
                 .addLink(linkTo(EventController.class).withRel("query-events"))
-                .addLink(selfLinkBuilder.withSelfRel())
                 .addLink(selfLinkBuilder.withRel("update-event"))
                 .addLink(new Link("/docs/index.html#resources-events-create").withRel("profile"));
 
         return ResponseEntity.created(createdUri).body(eventResource);
     }
 
-    private ResponseEntity badResponse(Errors errors) {
+    private ResponseEntity badRequest(Errors errors) {
         return ResponseEntity.badRequest().body(new ErrorsResource(errors));
+    }
+
+    @GetMapping
+    public ResponseEntity queryEvents(Pageable pageable, PagedResourcesAssembler<Event> assembler) {
+        final Page<Event> page = eventRepository.findAll(pageable);
+        final PagedResources<Resource<Event>> pagedResources = assembler.toResource(page, e -> new EventResource(e));
+        pagedResources.add(new Link("/docs/index.html#resources-events-list").withRel("profile"));
+
+        return ResponseEntity.ok(pagedResources);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity getEvent(@PathVariable Long id){
+        final Optional<Event> optionalEvent = this.eventRepository.findById(id);
+
+        if(optionalEvent.isEmpty()){
+            return ResponseEntity.notFound().build();
+        }
+
+        final Event event = optionalEvent.get();
+        final EventResource eventResource = new EventResource(event);
+        eventResource.add(new Link("/docs/index.html#resources-events-get").withRel("profile"));
+
+        return ResponseEntity.ok(eventResource);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity updateEvent(@PathVariable Long id, @RequestBody @Valid EventDto eventDto, Errors errors){
+        final Optional<Event> optionalEvent = this.eventRepository.findById(id);
+
+        if(optionalEvent.isEmpty()){
+            return ResponseEntity.notFound().build();
+        }
+
+        if(errors.hasErrors()){
+            return badRequest(errors);
+        }
+
+        this.eventValidator.validate(eventDto, errors);
+
+        if(errors.hasErrors()){
+            return badRequest(errors);
+        }
+
+        final Event existingEvent = optionalEvent.get();
+        this.modelMapper.map(eventDto, existingEvent);
+
+        final Event savedEvent = this.eventRepository.save(existingEvent);
+        final EventResource eventResource = new EventResource(savedEvent);
+        eventResource.add(new Link("/docs/index.html#resources-events-update").withRel("profile"));
+
+        return ResponseEntity.ok(eventResource);
     }
 }
