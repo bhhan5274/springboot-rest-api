@@ -1,5 +1,8 @@
 package com.bhhan.springbootrestapi.domain.events;
 
+import com.bhhan.springbootrestapi.domain.accounts.Account;
+import com.bhhan.springbootrestapi.domain.accounts.AccountSerializer;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.*;
 
 import javax.persistence.*;
@@ -35,6 +38,11 @@ public class Event {
     private boolean offline;
     private boolean free;
 
+    @ManyToOne
+    @JsonSerialize(using = AccountSerializer.class)
+    @JoinColumn(name = "ACCOUNT_ID")
+    private Account account;
+
     @Enumerated(value = EnumType.STRING)
     private EventStatus eventStatus;
 
@@ -42,7 +50,8 @@ public class Event {
     public Event(String name, String description, LocalDateTime beginEnrollmentDateTime,
                  LocalDateTime closeEnrollmentDateTime, LocalDateTime beginEventDateTime,
                  LocalDateTime endEventDateTime, String location, int basePrice, int maxPrice,
-                 int limitOfEnrollment, boolean offline, boolean free, EventStatus eventStatus){
+                 int limitOfEnrollment, boolean offline, boolean free, EventStatus eventStatus,
+                 Account account){
         this.name = name;
         this.description = description;
         this.beginEnrollmentDateTime = beginEnrollmentDateTime;
@@ -56,6 +65,7 @@ public class Event {
         this.offline = offline;
         this.free = free;
         this.eventStatus = EventStatus.DRAFT;
+        this.account = account;
     }
 
     public void update() {
